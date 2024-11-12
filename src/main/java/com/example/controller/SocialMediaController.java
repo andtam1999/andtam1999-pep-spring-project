@@ -3,8 +3,8 @@ package com.example.controller;
 import com.example.service.*;
 import com.example.entity.*;
 import com.example.exception.*;
+import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,28 +17,64 @@ import org.springframework.web.bind.annotation.*;
  */
 @RestController
 public class SocialMediaController {
-    @Autowired
     AccountService accountService;
+    MessageService messageService;
+
+    public SocialMediaController(AccountService accService, MessageService msgService) {
+        accountService = accService;
+        messageService = msgService;
+    }    
 
     @PostMapping("/register")
     public ResponseEntity<Account> register(@RequestBody Account acc) throws InvalidInputException, AlreadyExistsException {
-        return new ResponseEntity<Account>(accountService.insertAccount(acc), HttpStatus.OK);
+        return new ResponseEntity<>(accountService.insertAccount(acc), HttpStatus.OK);
     }
 
     @PostMapping("/login")
     public ResponseEntity<Account> login(@RequestBody Account acc) {
         Account loggedInAccount = accountService.getAccount(acc);
         if (loggedInAccount != null) {
-            return new ResponseEntity<Account>(loggedInAccount, HttpStatus.OK);
+            return new ResponseEntity<>(loggedInAccount, HttpStatus.OK);
         }
         else {
-            return new ResponseEntity<Account>(HttpStatus.UNAUTHORIZED);
-        } 
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        }
     }
 
     @PostMapping("/messages")
-    public ResponseEntity<Message> messages(@RequestBody Message msg) {
-        return ResponseEntity.status(HttpStatus.OK).body(new Message());
+    public ResponseEntity<Message> messagePost(@RequestBody Message msg) throws InvalidInputException {
+        return new ResponseEntity<>(messageService.insertMessage(msg), HttpStatus.OK);
+    }
+
+    @GetMapping("/messages")
+    public ResponseEntity<List<Message>> messageGet() {
+        return new ResponseEntity<>(messageService.getAllMessages(), HttpStatus.OK);
+    }
+
+    @GetMapping("/messages/{messageId}")
+    public ResponseEntity<Message> messageGetById(@PathVariable int messageId) {
+        return new ResponseEntity<>(messageService.getMessageById(messageId), HttpStatus.OK);
+    }
+
+    @DeleteMapping("/messages/{messageId}")
+    public ResponseEntity<Integer> messageDeleteById(@PathVariable int messageId) {
+        if (messageService.deleteMessageById(messageId)) {
+            return new ResponseEntity<>(1, HttpStatus.OK);
+        }
+        else {
+            return new ResponseEntity<>(HttpStatus.OK);
+        }
+    }
+
+    @PatchMapping("/messages/{messageId}")
+    public ResponseEntity<Integer> messageUpdateById(@PathVariable int messageId, @RequestBody Message msg) throws InvalidInputException {
+        messageService.updateMessageById(msg.getMessageText(), messageId);
+        return new ResponseEntity<>(1, HttpStatus.OK);
+    }
+
+    @GetMapping("/accounts/{accountId}/messages")
+    public ResponseEntity<List<Message>> accountGetAllMessages(@PathVariable int accountId) {
+        return new ResponseEntity<>(messageService.getAllMessagesByAccountId(accountId), HttpStatus.OK);
     }
 
     @ExceptionHandler(AlreadyExistsException.class)
